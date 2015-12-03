@@ -147,6 +147,15 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <id>dossett</id>
+            <name>Aaron Dossett</name>
+            <email>dossett@apache.org</email>
+            <roles>
+                <role>Committer</role>
+            </roles>
+            <timezone>-6</timezone>
+        </developer>
     </developers>
 
 
@@ -172,6 +181,7 @@
 
         <!-- dependency versions -->
         <clojure.version>1.7.0</clojure.version>
+        <java_jmx.version>0.3.1</java_jmx.version>
         <compojure.version>1.1.3</compojure.version>
         <hiccup.version>0.3.6</hiccup.version>
         <commons-io.version>2.4</commons-io.version>
@@ -236,6 +246,7 @@
         <module>external/storm-elasticsearch</module>
         <module>external/storm-solr</module>
         <module>external/storm-metrics</module>
+        <module>external/storm-cassandra</module>
         <module>examples/storm-starter</module>
     </modules>
 
@@ -814,6 +825,7 @@
                         <exclude>**/target/**</exclude>
                         <!-- exclude intellij projects -->
                         <exclude>**/*.iml</exclude>
+                        <exclude>**/.idea/**</exclude>
                         <!-- module specific testing artifacts -->
                         <exclude>**/metastore_db/**</exclude>
 
@@ -859,6 +871,19 @@
                         <exclude>**/derby.log</exclude>
                         <exclude>**/src/dev/**</exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
+                    <docletArtifact>
+                        <groupId>ch.raffael.pegdown-doclet</groupId>
+                        <artifactId>pegdown-doclet</artifactId>
+                        <version>1.1</version>
+                    </docletArtifact>
+                    <useStandardDocletOptions>true</useStandardDocletOptions>
                 </configuration>
             </plugin>
         </plugins>
