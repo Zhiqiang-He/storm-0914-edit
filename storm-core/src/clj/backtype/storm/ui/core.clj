@@ -21,7 +21,7 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log stats tuple zookeeper converter])
+  (:use [backtype.storm config util log stats zookeeper converter])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID mk-authorization-handler
@@ -57,6 +57,7 @@
 (def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defmeter ui:num-cluster-configuration-http-requests)
 (defmeter ui:num-cluster-summary-http-requests)
@@ -376,7 +377,7 @@
                                 (map #(.get_num_executors ^TopologySummary %))
                                 (reduce +))]
        {"user" user
-        "stormVersion" (str (VersionInfo/getVersion))
+        "stormVersion" STORM-VERSION
         "supervisors" (count sups)
         "topologies" topologies
         "slotsTotal" total-slots
@@ -1285,4 +1286,7 @@
    (catch Exception ex
      (log-error ex))))
 
-(defn -main [] (start-server!))
+(defn -main
+  []
+  (log-message "Starting ui server for storm version '" STORM-VERSION "'")
+  (start-server!))

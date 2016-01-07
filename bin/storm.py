@@ -99,7 +99,7 @@ def get_config_opts():
 if not os.path.exists(STORM_LIB_DIR):
     print("******************************************")
     print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
-    print("\nYou can download a Storm release at http://storm-project.net/downloads.html")
+    print("\nYou can download a Storm release at http://storm.apache.org/downloads.html")
     print("******************************************")
     sys.exit(1)
 
@@ -108,7 +108,7 @@ def get_jars_full(adir):
     if os.path.isdir(adir):
         files = os.listdir(adir)
     elif os.path.exists(adir):
-        files = [aidr]
+        files = [adir]
 
     ret = []
     for f in files:
@@ -208,9 +208,14 @@ def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[]
         os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
     elif is_windows():
         # handling whitespaces in JAVA_CMD
-        sub.call(all_args)
+        try:
+            ret = sub.check_output(all_args, stderr=sub.STDOUT)
+            print(ret)
+        except sub.CalledProcessor as e:
+            sys.exit(e.returncode)
     else:
         os.execvp(JAVA_CMD, all_args)
+        os._exit()
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]
@@ -228,6 +233,18 @@ def jar(jarfile, klass, *args):
         args=args,
         daemon=False,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
+
+def sql(sql_file, topo_nam):
+    """Syntax: [storm sql sql-file topology]
+
+    Compiles the SQL statements into a Trident topology and submits it to Storm.
+    """
+    exec_storm_class(
+        "org.apache.storm.sql.StormSqlRunner",
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR],
+        args=[sql_file, topo_name],
+        daemon=False)
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
@@ -263,6 +280,32 @@ def upload_credentials(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
+def blobstore(*args):
+    """Syntax: [storm blobstore cmd]
+
+    list [KEY...] - lists blobs currently in the blob store
+    cat [-f FILE] KEY - read a blob and then either write it to a file, or STDOUT (requires read access).
+    create [-f FILE] [-a ACL ...] [--replication-factor NUMBER] KEY - create a new blob. Contents comes from a FILE
+         or STDIN. ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma separated list.
+    update [-f FILE] KEY - update the contents of a blob.  Contents comes from
+         a FILE or STDIN (requires write access).
+    delete KEY - delete an entry from the blob store (requires write access).
+    set-acl [-s ACL] KEY - ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
+         separated list (requires admin access).
+    replication --read KEY - Used to read the replication factor of the blob.
+    replication --update --replication-factor NUMBER KEY where NUMBER > 0. It is used to update the
+        replication factor of a blob.
+    For example, the following would create a mytopo:data.tgz key using the data
+    stored in data.tgz.  User alice would have full access, bob would have
+    read/write access and everyone else would have read access.
+    storm blobstore create mytopo:data.tgz -f data.tgz -a u:alice:rwa,u:bob:rw,o::r
+    """
+    exec_storm_class(
+        "backtype.storm.command.blobstore",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+
 def heartbeats(*args):
     """Syntax: [storm heartbeats [cmd]]
 
@@ -274,7 +317,7 @@ def heartbeats(*args):
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
-    
+
 def activate(*args):
     """Syntax: [storm activate topology-name]
 
@@ -658,9 +701,9 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials, "pacemaker": pacemaker, "heartbeats": heartbeats,
+            "upload-credentials": upload_credentials, "pacemaker": pacemaker, "heartbeats": heartbeats, "blobstore": blobstore,
             "get-errors": get_errors, "set_log_level": set_log_level, "kill_workers": kill_workers,
-            "node-health-check": healthcheck}
+            "node-health-check": healthcheck, "sql": sql}
 
 def parse_config(config_list):
     global CONFIG_OPTS
